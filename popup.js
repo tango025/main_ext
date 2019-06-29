@@ -568,6 +568,47 @@ var group_arr = [];
 var group_len;
 var fb_cat_wise_group_count = -1;
 var first_run = false;
+var global_phone_arr = {};
+var global_email_arr = {};
+var global_email_arr_loop_count = -1;
+var global_email_arr_len;
+var email_return_arr = [];
+var phone_return_arr = [];
+var url_return_arr = [];
+function dump_to_db(email_flag, phone_flag, val) {
+    // if (fb_page_s_loop_count <= groups.length - 1)
+    //     var catName = groups[fb_page_s_loop_count];
+    // else
+    //     var catName = keywords[fb_page_s_loop_count - groups.length];
+    var catName = groups[fb_cat_groups_loop_count];
+    if (email_flag) {
+        var addon = '&email=';
+        if(global_email_arr[catName])
+        global_email_arr[catName].push(...val);        
+        else
+        global_email_arr[catName]=val; 
+    }
+    if (phone_flag) {
+        var addon = '&phone=';
+        if (global_phone_arr[catName])
+            global_phone_arr[catName].push(...val);
+        else
+            global_phone_arr[catName] = val;
+    }
+    console.log(addon + val);
+
+    console.log('DUMP TO DB URL' + 'http://atg-test.000webhostapp.com/api/submit?group_name=' + catName + addon + val + '&location=' + location_var + '&url=fb_url');
+    $.ajax({
+        url: 'http://atg-test.000webhostapp.com/api/submit?group_name=' + catName + addon + val + '&location=' + location_var + '&url=fb_url',
+        contentType: "json",
+        method: "post",
+        crossDomain: true,
+        success: function (response) {
+            console.log('data submitted online');
+            console.log(response);
+        }
+    });
+}
 function load_groups_for_check(){
 fb_cat_wise_group_count++;
     console.log(fb_cat_wise_group_count +"/"+ (group_len-1))
@@ -589,7 +630,13 @@ fb_cat_wise_group_count++;
                 //listener for when loading is complete
                 if (changedInfo.status === "complete" && tabid == activeTab) {
                     console.log("sending message that group_page_loaded");
-                    chrome.tabs.sendMessage(tabs[0].id, { greeting: "fb_group_page_loaded", keyword: groups[fb_cat_groups_loop_count], array: data[groups[fb_cat_groups_loop_count]],tabid: activeTab }, function (response) {
+                    chrome.tabs.sendMessage(tabs[0].id, { 
+                        greeting: "fb_group_page_loaded",
+                        keyword: groups[fb_cat_groups_loop_count],
+                        array: data[groups[fb_cat_groups_loop_count]],
+                        scraping:group_scrape,
+                        posting:group_post,
+                        tabid: activeTab }, function (response) {
                         while (chrome.tabs.onUpdated.hasListener(lak) === true) {
                             chrome.tabs.onUpdated.removeListener(lak);
                         }
@@ -627,20 +674,32 @@ function main_fx_backend(request, sender, sendResponse) {
         load_fb_groups_search_page();
         else{
             first_run =false;
-            console.log("over")
+            console.log("groups over")
+            if(page_scrape){}
+            //start scraping pages
         }
         //call load_fb_groups_search_page()
         //warna start searching local storage for group approval done
     }
     if ('fb_group_page_loaded_response' in request){
         //agar group list remains 
+        if(request.emailMatches.length>0) email_return_arr.push(...request.emailMatches)
+        if (request.phoneMatches.length > 0) phone_return_arr.push(...request.phoneMatches)
+        if (request.urlMatches.length > 0) url_return_arr.push(...request.urlMatches);
         if (fb_cat_wise_group_count<group_len-1 ) 
         //next group in the list
         load_groups_for_check();
         else if (fb_cat_wise_group_count = group_len - 1 && fb_cat_groups_loop_count<groups.length-1 ) 
         //new list if any left
-        revisit_group_category_wise_for_approval()
-        else console.log("Over");
+        {
+            if(email_return_arr.length>0){dump_to_db(1,0,email_return_arr);email_return_arr = [];}
+            if(phone_return_arr.length>0){dump_to_db(0,1,phone_return_arr);phone_return_arr = [];}
+            revisit_group_category_wise_for_approval()
+        }
+        else{
+             //start pages
+        } 
+        //console.log("Over");
         
     }
 }
@@ -702,23 +761,30 @@ function shuffle(array) {
 }
 function main(){
     console.log("mian starts");
-    for (var loop_count = 0; loop_count < groups.length; loop_count++) 
-    generate_fb_group_search_links(groups[loop_count]);
-    console.log(fb_groups_s_url_list);
-    chrome.storage.sync.get("new", (res) => {
-        if (res["new"] == undefined) {
-            console.log("A");
-            first_run = true;
-            chrome.storage.sync.set({ "new": "false" });
-        }
-        console.log(first_run);
-        if (first_run)  load_fb_groups_search_page();
-        else revisit_group_category_wise_for_approval()
-    });
+    if(group_post || group_scrape){
+        for (var loop_count = 0; loop_count < groups.length; loop_count++)
+            generate_fb_group_search_links(groups[loop_count]);
+        console.log(fb_groups_s_url_list);
+        chrome.storage.sync.get("new", (res) => {
+            if (res["new"] == undefined) {
+                first_run = true;
+                chrome.storage.sync.set({ "new": "false" });
+            }
+            console.log("first time running :", first_run);
+            if (first_run) load_fb_groups_search_page();
+            else revisit_group_category_wise_for_approval()
+            //modify revist fn toh check for both scrape and post
+        });
+    }
+    
     
 }
 (function () {
     document.addEventListener('DOMContentLoaded', function () {
+         group_post = document.getElementById("group_post").checked;
+         group_scrape = document.getElementById("group_scrape").checked;
+         page_scrape = document.getElementById("page_scrape").checked;
+         gmail_work = document.getElementById("gmail_work").checked;
         document.querySelector('#submit').addEventListener(
             'click', main);
     });

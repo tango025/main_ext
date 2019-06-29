@@ -3,6 +3,33 @@ var sleep_timer = 5000;
 var scroll_timer = 5000;
 var scroll_time;
 var fb_groups_link_array = [];
+var email_return_arr = [];
+var phone_return_arr = [];
+var url_return_arr = [];
+function scrape() {
+	console.log('scraping');
+	var url_matches = $('div.fb_content').html().match(/(http(s)?:\/\/.)?(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&//=]*)/g);
+	var email_matches = $('body').html().match(/[\w._%+-]+@[\w-]+(\.[\w]{2,10})+/g);
+	var phone_matches = $('div.fb_content').text().match(/\+?\d?\d? ?-?\d{3}-?\d{2} ?\d-?\d{4}/g);
+	var phoneArr = [
+		"\\+\\d\\d?-? ?\\d{3}-\\d{3}-\\d{4}",//
+		"\\+\\d\\d?-? ?\\d{10}",
+		"\\+\\d\\d?-? ?\\d{5} \\d{5}",
+		"\\s\\d{3}-\\d{3}-\\d{4}\\s",
+		"\\s\\d{10}\\s",
+		"\\s\\d{5} \\d{5}\\s"
+	];
+	var re = new RegExp(phoneArr.join("|"), "g");
+	var phone = $('div.fb_content').text().match(re);
+	// var matches = $('span._3l3x').text().match(/\+?\d?\d? ?-?\d{3}-?\d{2} ?\d-?\d{4}/);
+	console.log(url_matches);
+	url_return_arr = [...new Set(url_matches.map(e => e.toLowerCase()))].filter(d => (d.length < 25 && !d.includes(".php") && !d.includes("@") && !d.includes("arbiter") && !d.includes("scontent")));
+	//console.log(email_matches);
+	if (email_matches !== null)
+		email_return_arr = [...new Set(email_matches.map(d => d.toLowerCase()))];
+	phone_return_arr = [...new Set(phone)];
+
+}
 function scroll_down(x) {
 	var i = 0;
 	while (i < x) {
@@ -62,14 +89,6 @@ function main_fx(request, sender, sendResponse) {
 				})(i);  
 					
 					}
-					//if(POPUP_comeS)
-				// while (document.getElementsByClassName("layerCancel").length>0)
-				// {
-				// 	for (var j = 0; j < document.getElementsByClassName("layerCancel").length; j++) 
-				// 		document.getElementsByClassName("layerCancel")[j].click();
-					
-				// }
-				//send Message after all clicking finishes(for around 25 groups)
 				setTimeout(()=>{
 				chrome.runtime.sendMessage({fb_group_search_page_loaded_response:fb_groups_link_array,keyword:request.keyword},function(response){
 					console.log("links sent");
@@ -80,23 +99,39 @@ function main_fx(request, sender, sendResponse) {
 	}
 	if (request.greeting == "fb_group_page_loaded"){
 		$(document).ready(function () {
+			//if(scrape)scroll+scrape
+			scroll_time = 0;
+			if(request.scraping)
+			{
+			scroll_time =scroll_down(1);
+			console.log(`scraping will start after ${scroll_time}`);
+			setTimeout(()=>scrape(),scroll_time);
+			}
+			if(request.posting){
+				setTimeout(() => {
+					if (document.getElementsByClassName("_55sr")[0]) {
+						if (document.getElementsByClassName("_55sr")[0].innerText === "Joined") {
+							//post function
+							make_fb_post(request.array[Math.floor(Math.random() * request.array.length)]);
+						}
+					} else console.log("request not approved");
+					//send Message to move to next group
+
+				}, scroll_time+5000)
+			}
+			//if(post)
 			//check if request is pending or approved
 			//if(approved) post
-			setTimeout(()=>{
-				if (document.getElementsByClassName("_55sr")[0]){
-				if(document.getElementsByClassName("_55sr")[0].innerText === "Joined"){
-				//post function
-					make_fb_post(request.array[Math.floor(Math.random() * request.array.length)]);
-			}
-		}else console.log("request not approved");
-			//send Message to move to next group
-		
-		},5000)
+			
 		setTimeout(()=>{
-			chrome.runtime.sendMessage({ fb_group_page_loaded_response: "hello" }, function (response) {
+			chrome.runtime.sendMessage({ fb_group_page_loaded_response: "hello",
+										 keyword:request.keyword,
+										 emailMatches :email_return_arr,
+										 urlMatches:url_return_arr,
+										 phoneMatches:phone_return_arr }, function (response) {
 				console.log("post made/invitation pending");
 			})
-		},13000)
+		},scroll_time+13000)
 		})
 	}
 }
