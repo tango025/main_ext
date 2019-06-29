@@ -575,6 +575,16 @@ var global_email_arr_len;
 var email_return_arr = [];
 var phone_return_arr = [];
 var url_return_arr = [];
+var text;
+var fb_page_s_url_list = [];
+var fb_page_s_loop_count = -1;
+
+var fb_page_url_list = [];
+var fb_page_loop_count = 0;
+var fb_page_last_loaded;
+var testvar = 0;
+var testvar2 = 0;
+
 function dump_to_db(email_flag, phone_flag, val) {
     // if (fb_page_s_loop_count <= groups.length - 1)
     //     var catName = groups[fb_page_s_loop_count];
@@ -664,6 +674,105 @@ function store_in_local_storage(key,arr){
         console.log("stored the links in local storage");
     });
 }
+function generate_fb_page_search_links(txtt) {
+    location_var = text;
+    fb_page_s_url_list.push('https://www.facebook.com/search/pages/?q=' + txtt + '%20' + text + '&epa=SEARCH_BOX');
+}
+function load_fb_search_page_by_input() {
+    try {
+        //if (!navigator.onLine) throw "paused";
+        //var completed = document.getElementById("percentCompleted");
+        fb_page_s_loop_count++;
+        //completed.innerHTML = "finished:" + parseFloat((fb_page_s_loop_count / fb_page_s_url_list.length) * 100).toFixed(2) + "%" + "(" + fb_page_s_loop_count + "/" + fb_page_s_url_list.length + ")";
+        console.log('inside call urls : ' + fb_page_s_loop_count);
+        chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+            console.log('navigng to : ' + fb_page_s_url_list[fb_page_s_loop_count]);
+            activeTab = tabs[0].id;
+            chrome.tabs.update(tabs[0].id, { url: fb_page_s_url_list[fb_page_s_loop_count] }, () => {
+                chrome.tabs.onUpdated.addListener(function lakshadweep(tabid, changedInfo) {
+                    //dont load any images
+                    chrome.contentSettings['images'].get({
+                        primaryUrl: tabs[0].url
+                    }, function (details) {
+                        chrome.contentSettings['images'].set({
+                            primaryPattern: 'https://www.facebook.com/*',
+                            secondaryPattern: 'https://www.facebook.com/*',
+                            setting: 'block'
+                        })
+                    })
+                    //listener for when loading is complete
+                    if (changedInfo.status === "complete" && tabid == activeTab) {
+                        console.log("sending message that fb_s_page_loaded");
+                        chrome.tabs.sendMessage(tabs[0].id, { greeting: "fb_search_page_loaded", keyword: groups[fb_page_s_loop_count], tabid: activeTab }, function () {
+                            while (chrome.tabs.onUpdated.hasListener(lakshadweep) === true) {
+                                chrome.tabs.onUpdated.removeListener(lakshadweep);
+                            }
+                            // fb_page_s_url_list.push(response.url_loaded_response);
+                        });
+                    }
+                });
+            });
+        })
+        console.log(global_email_arr, global_phone_arr);
+    }
+    catch (err) {
+        console.log(err, ":cant load fb search page");
+        console.log("no internet connectivity.")
+        pause();
+    }
+}
+function load_fb_page() {
+    try {
+        if (!navigator.onLine) throw "paused";
+        console.log("testvar2 : ", testvar2);
+        chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+            console.log('navigating to page : ' + fb_page_url_list[fb_page_loop_count]);
+            chrome.tabs.update(tabs[0].id, { url: fb_page_url_list[fb_page_loop_count] }, () => {
+                console.log('inside UPDATE');
+
+                chrome.tabs.onUpdated.addListener(function kovalam(tabid, changedInfo, tab) {
+                    console.log('inside ADD LISTENER');
+                    //dont load any images
+                    chrome.contentSettings['images'].get({
+                        primaryUrl: tabs[0].url
+                    }, function (details) {
+                        chrome.contentSettings['images'].set({
+                            primaryPattern: 'https://www.facebook.com/*',
+                            secondaryPattern: 'https://www.facebook.com/*',
+                            setting: 'block'
+                        })
+                    })
+
+                    if (changedInfo.status == 'complete' && tab.status == 'complete' && tabid == activeTab) {
+                        if (new Date() - fb_page_last_loaded <= 5000) {
+                            console.log('we avoided duplicate changedInfo.status = complete');
+                        } else {
+                            console.log('===== TAB LOAD COMPLETED ===============');
+                            chrome.tabs.sendMessage(tabs[0].id, { greeting: "fb_page_loaded", tabid: activeTab }, function (response) {
+                                console.log('FACEBOOK PAGE hAS LOADED');
+                                // console.log(fb_page_url_list);
+                                console.log(fb_page_loop_count + '/' + fb_page_url_list.length);
+                                console.log(fb_page_url_list[fb_page_loop_count]);
+                                fb_page_loop_count++;
+                                // debugger;
+                                while (chrome.tabs.onUpdated.hasListener(kovalam) === true) {
+                                    chrome.tabs.onUpdated.removeListener(kovalam);
+                                }
+                            });
+                        }
+                    }
+                    //listener for when loading is complete
+                });
+            });
+        });
+    }
+    catch (err) {
+        console.log(err, "can't load fb page");
+        console.log("no internet connectivity.");
+        pause();
+    }
+
+}
 function main_fx_backend(request, sender, sendResponse) {
     if ('fb_group_search_page_loaded_response' in request){
         //store in local storage
@@ -675,11 +784,14 @@ function main_fx_backend(request, sender, sendResponse) {
         else{
             first_run =false;
             console.log("groups over")
-            if(page_scrape){}
-            //start scraping pages
+            if (page_scrape) {
+                for (var loop_count = 0; loop_count < groups.length; loop_count++) {
+                    generate_fb_page_search_links(groups[loop_count]);
+                }
+                load_fb_search_page_by_input();
+            }
+            else console.log("over");
         }
-        //call load_fb_groups_search_page()
-        //warna start searching local storage for group approval done
     }
     if ('fb_group_page_loaded_response' in request){
         //agar group list remains 
@@ -698,9 +810,112 @@ function main_fx_backend(request, sender, sendResponse) {
         }
         else{
              //start pages
+            if(page_scrape){
+                for (var loop_count = 0; loop_count < groups.length; loop_count++) {
+                    generate_fb_page_search_links(groups[loop_count]);
+                }
+                load_fb_search_page_by_input();
+            }
+            else console.log("over");
+            
         } 
         //console.log("Over");
         
+    }
+    if ('fb_search_page_loaded_response' in request) {
+        console.log('FACEBOOK PAGE search HAS loaded');
+        console.log(request.fb_search_page_loaded_response);
+
+        fb_page_url_list = request.fb_search_page_loaded_response;
+
+
+        // JUNK CODE THAT REDUCES LENGHT OF ARRAY -- TO BE DELETED
+        // fb_page_url_list.length = 5;
+
+        console.log('request.fb_search_page_loaded_response;' + fb_page_url_list.length);
+
+        fb_page_loop_count = 0;
+        var something = (function () {
+            var executed = false;
+            return function () {
+                if (!executed) {
+                    executed = true;
+                    testvar++;
+                    console.log("inside do something");
+                    load_fb_page();
+                    testvar2++;
+                }
+            };
+        })();
+        something(); // "do something" happens
+        something(); // nothing happens
+    }
+    if ('fb_page_loaded_response' in request) {
+
+        console.log('FACEBOOK PAGE HAS RETURNED THE DATA NOW!!!! EMAIL + PHONE + URL DATA IS RECEIVED!! ');
+        if (request.email.length === 0) {
+            console.log('email is null');
+        } else {
+            email_return_arr.push(...request.email);
+            console.log('email is NOT null');
+        }
+
+        if (request.phone.length === 0) {
+            console.log('phone is null');
+        } else {
+            phone_return_arr.push(...request.phone);
+            console.log('phone is NOT null');
+        }
+
+        if (request.url.length === 0) {
+            console.log('url is null');
+        } else {
+            console.log('url is NOT null');
+            url_return_arr.push(...request.url);
+            console.log(url_return_arr);
+        }
+        if (fb_page_loop_count < fb_page_url_list.length) {
+            console.log('calling load_fb_page from inside fb_page_loaded_response with a setTimeout of 12000.. so it should run in 12 seconds');
+            fb_page_last_loaded = new Date();
+            setTimeout(load_fb_page, 12000);
+        }
+
+
+        else {
+            if (fb_page_loop_count == fb_page_url_list.length - 1) {
+                console.log(fb_page_loop_count);
+                console.log(fb_page_url_list);
+                if (email_return_arr.length > 0) {
+                    dump_to_db(1, 0, email_return_arr);
+                    email_return_arr = [];
+                }
+
+                if (phone_return_arr.length > 0) {
+                    dump_to_db(0, 1, phone_return_arr);
+                    phone_return_arr = [];
+                }
+                console.log('WELL, last PAGE in the fb_page_url_list has finished. Now we should call call_url again to go to the next group ');
+                // TODO : this is where we will dump all the email / phone number for this location/group combo to the DB server.
+                if (fb_page_s_loop_count <= groups.length - 1)
+                    var keyi = groups[fb_page_s_loop_count];
+                else
+                    var keyi = keywords[fb_page_s_loop_count - groups.length];
+                console.log({ [keyi]: url_return_arr });
+                chrome.storage.sync.set({ [keyi]: url_return_arr }, () => {
+                    console.log("inside");
+                    url_return_arr = [];
+                    chrome.storage.sync.get([keyi], (res) => {
+                        console.log(res);
+                    })
+                    if (fb_page_s_loop_count < fb_page_s_url_list.length - 1) load_fb_search_page_by_input();
+                    else {
+                        global_email_arr_len = global_email_arr.length;
+                        send_Email(global_email_arr);
+                    }
+                })
+
+            }
+        }
     }
 }
 
@@ -781,10 +996,11 @@ function main(){
 }
 (function () {
     document.addEventListener('DOMContentLoaded', function () {
-         group_post = document.getElementById("group_post").checked;
-         group_scrape = document.getElementById("group_scrape").checked;
-         page_scrape = document.getElementById("page_scrape").checked;
-         gmail_work = document.getElementById("gmail_work").checked;
+        group_post = document.getElementById("group_post").checked;
+        group_scrape = document.getElementById("group_scrape").checked;
+        page_scrape = document.getElementById("page_scrape").checked;
+        gmail_work = document.getElementById("gmail_work").checked;
+        text = $('input#location').val();
         document.querySelector('#submit').addEventListener(
             'click', main);
     });

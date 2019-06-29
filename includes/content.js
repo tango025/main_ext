@@ -59,6 +59,51 @@ function make_fb_post(post){
 		document.getElementsByClassName("_4wqt")[0].click()
 		console.log("post made")},5000);
 }
+function click_fb_vmc_inner() {
+	if (typeof ($("._4sxc._42ft")[0]) != 'undefined') {
+		console.log(typeof ($("._4sxc._42ft")[0]));
+		console.log("._4sxc._42ft"[0]);
+		$("._4sxc._42ft")[0].click();
+		console.log('CLICKING ON SOMETHING');
+	} else {
+		console.log('COULDN\'t CLICK');
+	}
+}
+
+function click_fb_vmc() {
+	// This functions clicks on FB View More Comments until it has clicked on every such View More comments on the page.
+	click_fb_vmc_counter_1 = 0;
+	click_fb_vmc_counter_2 = 0;
+	click_fb_vmc_counter_3 = 0;
+
+	while (typeof ($("._4sxc._42ft")[click_fb_vmc_counter_1]) != 'undefined') {
+		// TODO : this logic can be improved
+		console.log('click_fb_vmc 1');
+		setTimeout(click_fb_vmc_inner, 1000);
+		click_fb_vmc_counter_1++;
+	}
+
+	setTimeout(function () {
+		while (typeof ($("._4sxc._42ft")[click_fb_vmc_counter_2]) != 'undefined') {
+			// TODO : this logic can be improved
+			console.log('click_fb_vmc 2');
+			setTimeout(click_fb_vmc_inner, 1500);
+			click_fb_vmc_counter_2++;
+		}
+	}, 500 * click_fb_vmc_counter_1 + sleep_timer);
+
+	setTimeout(function () {
+		while (typeof ($("._4sxc._42ft")[click_fb_vmc_counter_3]) != 'undefined') {
+			// TODO : this logic can be improved
+			console.log('click_fb_vmc 3');
+			setTimeout(click_fb_vmc, 2000);
+			click_fb_vmc_counter_3++;
+		}
+	}, 1000 * (click_fb_vmc_counter_1) + sleep_timer);
+
+	return (1500 * (click_fb_vmc_counter_1) + 2 * sleep_timer);
+
+}
 function main_fx(request, sender, sendResponse) {
 	if (request.greeting == "fb_group_search_page_loaded"){
 		$(document).ready(function () {
@@ -134,6 +179,54 @@ function main_fx(request, sender, sendResponse) {
 		},scroll_time+13000)
 		})
 	}
+	if (request.greeting == "fb_search_page_loaded") {
+
+		console.log('URL LOADED GREETING RECEIVED');
+		$(document).ready(function () {
+			// scroll down
+			scroll_time = scroll_down(0);
+
+			// check for interesting links
+			setTimeout(function () {
+				fb_post_s_link_array_populate();
+			}, scroll_time + sleep_timer);
+
+			setTimeout(function () {
+
+				chrome.runtime.sendMessage({ fb_search_page_loaded_response: fb_post_s_link_array, keyword: request.keyword }, function (response) {
+					console.log(`mess2222cvackground`);
+				});
+
+			}, scroll_time + (sleep_timer) + 1000);
+		});
+	}
+	if (request.greeting == "fb_page_loaded") {
+		scroll_time = 0;
+		console.log('FACEBOOK PAGE has loaded');
+		$(document).ready(function () {
+			// scroll down
+			scroll_time = scroll_down(0);
+		});
+
+
+		// Click on all the - View More comments
+		// a._4sxc._42ft
+		click_fb_vmc_timer = click_fb_vmc();
+
+		// scrape all emails and phone numbers
+		setTimeout(scrape, scroll_time + click_fb_vmc_timer + sleep_timer);
+
+		// console.log(array_received);
+		setTimeout(function () {
+			console.log(url_return_arr);
+			console.log(phone_return_arr);
+			console.log(email_return_arr);
+			chrome.runtime.sendMessage({ fb_page_loaded_response: 'hello', email: email_return_arr, phone: phone_return_arr, url: url_return_arr }, function (response) {
+				console.log(`EMAIL and PHONE NUMBERS and URL SENT TO BACKEND`);
+			});
+		}, scroll_time + click_fb_vmc_timer + (2 * sleep_timer));
+	}
+
 }
 //add listener for messages
 if (!chrome.runtime.onMessage.hasListener(main_fx)) {
