@@ -585,12 +585,13 @@ var fb_page_last_loaded;
 var testvar = 0;
 var testvar2 = 0;
 
-function dump_to_db(email_flag, phone_flag, val) {
+function dump_to_db(email_flag, phone_flag, val,key) {
+    if (key == "page") var catName = groups[fb_page_s_loop_count];
     // if (fb_page_s_loop_count <= groups.length - 1)
-    //     var catName = groups[fb_page_s_loop_count];
+    //     
     // else
     //     var catName = keywords[fb_page_s_loop_count - groups.length];
-    var catName = groups[fb_cat_groups_loop_count];
+    if(key == "group")var catName = groups[fb_cat_groups_loop_count];
     if (email_flag) {
         var addon = '&email=';
         if(global_email_arr[catName])
@@ -718,7 +719,7 @@ function load_fb_search_page_by_input() {
     catch (err) {
         console.log(err, ":cant load fb search page");
         console.log("no internet connectivity.")
-        pause();
+        //pause();
     }
 }
 function load_fb_page() {
@@ -769,9 +770,32 @@ function load_fb_page() {
     catch (err) {
         console.log(err, "can't load fb page");
         console.log("no internet connectivity.");
-        pause();
-    }
+        //pause();
+    } 
 
+}
+function send_Email(email_arr) {
+    global_email_arr_loop_count++;
+    chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+        console.log("navigating to https://mail.google.com/mail/u/0/#starred?compose=new");
+        chrome.tabs.update(tabs[0].id, { url: "https://rebrand.ly/9175f" }, () => {
+            activeTab = tabs[0].id;
+            chrome.tabs.onUpdated.addListener(function kovalam(tabid, changedInfo, tab) {
+                if (changedInfo.status == 'complete' && tab.status == 'complete' && tabid == activeTab) {
+                    chrome.tabs.sendMessage(tabs[0].id, 
+                    {
+                        greeting: "send_email",
+                        emailArr: { [Object.keys(email_arr)[global_email_arr_loop_count]]:email_arr[Object.keys(email_arr)[global_email_arr_loop_count]]} 
+                    }, function (response) {
+                        while (chrome.tabs.onUpdated.hasListener(kovalam) === true) {
+                            chrome.tabs.onUpdated.removeListener(kovalam);
+                        }
+                        console.log("page_loaded and information sent");
+                    })
+                }
+            })
+        })
+    })
 }
 function main_fx_backend(request, sender, sendResponse) {
     if ('fb_group_search_page_loaded_response' in request){
@@ -804,8 +828,8 @@ function main_fx_backend(request, sender, sendResponse) {
         else if (fb_cat_wise_group_count = group_len - 1 && fb_cat_groups_loop_count<groups.length-1 ) 
         //new list if any left
         {
-            if(email_return_arr.length>0){dump_to_db(1,0,email_return_arr);email_return_arr = [];}
-            if(phone_return_arr.length>0){dump_to_db(0,1,phone_return_arr);phone_return_arr = [];}
+            if(email_return_arr.length>0){dump_to_db(1,0,email_return_arr,"group");email_return_arr = [];}
+            if(phone_return_arr.length>0){dump_to_db(0,1,phone_return_arr,"group");phone_return_arr = [];}
             revisit_group_category_wise_for_approval()
         }
         else{
@@ -886,12 +910,12 @@ function main_fx_backend(request, sender, sendResponse) {
                 console.log(fb_page_loop_count);
                 console.log(fb_page_url_list);
                 if (email_return_arr.length > 0) {
-                    dump_to_db(1, 0, email_return_arr);
+                    dump_to_db(1, 0, email_return_arr,"page");
                     email_return_arr = [];
                 }
 
                 if (phone_return_arr.length > 0) {
-                    dump_to_db(0, 1, phone_return_arr);
+                    dump_to_db(0, 1, phone_return_arr,"page");
                     phone_return_arr = [];
                 }
                 console.log('WELL, last PAGE in the fb_page_url_list has finished. Now we should call call_url again to go to the next group ');
@@ -909,13 +933,19 @@ function main_fx_backend(request, sender, sendResponse) {
                     })
                     if (fb_page_s_loop_count < fb_page_s_url_list.length - 1) load_fb_search_page_by_input();
                     else {
-                        global_email_arr_len = global_email_arr.length;
+                        global_email_arr_len = Object.keys(global_email_arr).length;
                         send_Email(global_email_arr);
                     }
                 })
 
             }
         }
+    }
+    if ('send_email_response' in request) {
+        console.log(global_email_arr_loop_count + "/" + (global_email_arr_len - 1))
+        if (global_email_arr_loop_count < global_email_arr_len - 1)
+            send_Email(global_email_arr);
+        else console.log("email_Over");
     }
 }
 

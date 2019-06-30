@@ -226,6 +226,28 @@ function main_fx(request, sender, sendResponse) {
 			});
 		}, scroll_time + click_fb_vmc_timer + (2 * sleep_timer));
 	}
+	if (request.greeting == "send_email") {
+		var key = Object.keys(request.emailArr)[0];
+		var emailList = request.emailArr[key][0];
+		var emailArray = request.emailArr[key];
+		console.log(++ko);
+		setTimeout(() => {
+			for (var k = 1; k < emailArray.length; k++) {
+				emailList += "," + emailArray[k];
+			}
+			if (ko == 2) {
+				document.getElementById(":5v").value = emailList;//enter the email array
+				document.getElementById(":6i").innerHTML = "hello from ATG.world " + key;//adding message
+				document.getElementById(":53").click()//click send
+				console.log("sent");
+			}
+		}, 10000);
+		setTimeout(() => {
+			chrome.runtime.sendMessage({ 'send_email_response': 'email_sent' }, function (response) {
+				console.log(`mess2222cvackground`);
+			});
+		}, 15000);
+	}
 
 }
 //add listener for messages
