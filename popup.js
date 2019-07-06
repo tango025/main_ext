@@ -561,7 +561,7 @@ var data = {
     ]
 }
 keywords = [];
-var group_post,group_scrape,gmail_work,page_scrape;
+var group_post = true, group_scrape = true, gmail_work = true, page_scrape = true;
 var groups = shuffle(Object.keys(data))
 var grpToken = groups[0];
 var fb_groups_s_url_list = [];
@@ -1005,9 +1005,9 @@ function shuffle(array) {
 }
 function main(){
     console.log("mian starts");
-    group_post = document.getElementById("group_post").checked;
-    group_scrape = document.getElementById("group_scrape").checked;
-    page_scrape = document.getElementById("page_scrape").checked;
+    // group_post = document.getElementById("group_post").checked;
+    // group_scrape = document.getElementById("group_scrape").checked;
+    // page_scrape = document.getElementById("page_scrape").checked;
     // gmail_work = document.getElementById("gmail_work").checked;
     // console.log(group_post, group_scrape, page_scrape, gmail_work)
      location_var = $('input#location').val();
