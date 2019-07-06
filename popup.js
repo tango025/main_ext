@@ -561,7 +561,7 @@ var data = {
     ]
 }
 keywords = [];
-var group_post = true, group_scrape = true, gmail_work = true, page_scrape = true;
+var group_post = false, group_scrape = false, gmail_work = true, page_scrape = true;
 var groups = shuffle(Object.keys(data))
 var grpToken = groups[0];
 var fb_groups_s_url_list = [];
@@ -578,7 +578,7 @@ var global_email_arr_len;
 var email_return_arr = [];
 var phone_return_arr = [];
 var url_return_arr = [];
-
+var pausing = false;
 var fb_page_s_url_list = [];
 var fb_page_s_loop_count = -1;
 
@@ -687,6 +687,7 @@ function load_fb_search_page_by_input() {
         //if (!navigator.onLine) throw "paused";
         //var completed = document.getElementById("percentCompleted");
         fb_page_s_loop_count++;
+        document.getElementById("pause").style.display = "block";
         //completed.innerHTML = "finished:" + parseFloat((fb_page_s_loop_count / fb_page_s_url_list.length) * 100).toFixed(2) + "%" + "(" + fb_page_s_loop_count + "/" + fb_page_s_url_list.length + ")";
         console.log('inside call urls : ' + fb_page_s_loop_count);
         chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
@@ -806,7 +807,7 @@ function main_fx_backend(request, sender, sendResponse) {
         store_in_local_storage(request.keyword, request.fb_group_search_page_loaded_response);
         //if fb_groups_s_loop_count < url_list .length
         console.log(fb_group_s_loop_count + "/" + (fb_groups_s_url_list.length - 1));
-        if (page_scrape && first_run) {
+        if (page_scrape && first_run ) {
             for (var loop_count = 0; loop_count < groups.length; loop_count++) {
                 generate_fb_page_search_links(groups[loop_count]);
             }
@@ -919,7 +920,7 @@ function main_fx_backend(request, sender, sendResponse) {
                     var keyi = groups[fb_page_s_loop_count];
                 else
                     var keyi = keywords[fb_page_s_loop_count - groups.length];
-                console.log({ [keyi]: url_return_arr });
+                //console.log({ [keyi]: url_return_arr });
                 chrome.storage.sync.set({ [keyi]: url_return_arr }, () => {
                     console.log("inside");
                     url_return_arr = [];
@@ -930,6 +931,7 @@ function main_fx_backend(request, sender, sendResponse) {
                     else {
                         // global_email_arr_len = Object.keys(global_email_arr).length;
                         // send_Email(global_email_arr);
+                        if(!pausing);
                         revisit_group_category_wise_for_approval();
                     }
                 })
@@ -1005,6 +1007,7 @@ function shuffle(array) {
 }
 function main(){
     console.log("mian starts");
+    document.getElementById("submit").style.display = "none";
     // group_post = document.getElementById("group_post").checked;
     // group_scrape = document.getElementById("group_scrape").checked;
     // page_scrape = document.getElementById("page_scrape").checked;
@@ -1026,7 +1029,7 @@ function main(){
             //modify revist fn toh check for both scrape and post
         });
     }
-     else if (page_scrape) {
+     else {if (page_scrape) {
          for (var loop_count = 0; loop_count < groups.length; loop_count++) {
              generate_fb_page_search_links(groups[loop_count]);
          }
@@ -1035,13 +1038,40 @@ function main(){
          }
          load_fb_search_page_by_input();
      }
-     else alert("select atleast one of the boxes");
+     else alert("select atleast one of the boxes");}
     
     
  }
+function pause() {
+    pausing = true;
+    document.getElementById("pause").style.display = "none";
+    localfb_page_s_loop_count = (fb_page_s_loop_count==-1) ?fb_page_s_loop_count:fb_page_s_loop_count - 1;
+    fb_page_s_loop_count = fb_page_s_url_list.length;
+    fb_page_loop_count = fb_page_url_list.length;
+    console.log("paused");
+    document.getElementById("resume").style.display = "block";
+}
+function resume() {
+    pausing = false;
+    email_return_arr = [];
+    phone_return_arr = [];
+    url_return_arr = [];
+    testvar2--;
+    document.getElementById("resume").style.display = "none";
+    document.getElementById("pause").style.display = "block";
+    console.log("resumed");
+    fb_page_s_loop_count = localfb_page_s_loop_count;
+    load_fb_search_page_by_input();
+
+
+} 
 (function () {
     document.addEventListener('DOMContentLoaded', function () {     
         document.querySelector('#submit').addEventListener(
             'click', main);
+        document.querySelector("#pause").addEventListener(
+            'click', pause);
+        document.querySelector("#resume").addEventListener(
+            'click', resume);    
     });
 })();
