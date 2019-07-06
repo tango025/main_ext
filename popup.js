@@ -561,7 +561,7 @@ var data = {
     ]
 }
 keywords = [];
-var group_post = false, group_scrape = false, gmail_work = true, page_scrape = true;
+var group_post = true, group_scrape = true, gmail_work = true, page_scrape = true;
 var groups = shuffle(Object.keys(data))
 var grpToken = groups[0];
 var fb_groups_s_url_list = [];
