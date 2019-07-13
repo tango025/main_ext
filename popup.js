@@ -560,9 +560,10 @@ var data = {
         "JOIN THE SOCIAL NETWORK FOR SWIMMING\n https://ATG.world/go/Swimming ."
     ]
 }
-keywords = [];
+keywords = ["Civilisation","Cooking"];
 var group_post = true, group_scrape = true, gmail_work = true, page_scrape = true;
 var groups = shuffle(Object.keys(data))
+var intrests = shuffle(keywords).slice(0,2);
 var grpToken = groups[0];
 var fb_groups_s_url_list = [];
 var fb_group_s_loop_count = -1;
@@ -685,10 +686,11 @@ function generate_fb_page_search_links(txtt) {
 function load_fb_search_page_by_input() {
     try {
         //if (!navigator.onLine) throw "paused";
-        //var completed = document.getElementById("percentCompleted");
+        var completed = document.getElementById("percentCompleted");
         fb_page_s_loop_count++;
         document.getElementById("pause").style.display = "block";
-        //completed.innerHTML = "finished:" + parseFloat((fb_page_s_loop_count / fb_page_s_url_list.length) * 100).toFixed(2) + "%" + "(" + fb_page_s_loop_count + "/" + fb_page_s_url_list.length + ")";
+        completed.innerHTML = "finished:" + parseFloat(((fb_page_s_loop_count+2) / (fb_page_s_url_list.length+2)) * 100).toFixed(2) + "%" + "(" + (fb_page_s_loop_count+1) + "/" + (fb_page_s_url_list.length+2) + ")";
+        console.log(completed.innerHTML);
         console.log('inside call urls : ' + fb_page_s_loop_count);
         chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
             console.log('navigng to : ' + fb_page_s_url_list[fb_page_s_loop_count]);
@@ -803,16 +805,18 @@ function load_fb_page() {
 // }
 function main_fx_backend(request, sender, sendResponse) {
     if ('fb_group_search_page_loaded_response' in request){
+        //show percentage finished;
+        var completed = document.getElementById("percentCompleted");
+        completed.innerHTML = `finished : ${parseFloat((1/(3+intrests.length))*100).toFixed(2)} %`;        
+        console.log(completed.innerHTML);
         //store in local storage
         store_in_local_storage(request.keyword, request.fb_group_search_page_loaded_response);
         //if fb_groups_s_loop_count < url_list .length
         console.log(fb_group_s_loop_count + "/" + (fb_groups_s_url_list.length - 1));
         if (page_scrape && first_run ) {
-            for (var loop_count = 0; loop_count < groups.length; loop_count++) {
-                generate_fb_page_search_links(groups[loop_count]);
-            }
-            for (var loop_count = 0; loop_count < keywords.length; loop_count++) {
-                generate_fb_page_search_links(keywords[loop_count]);
+                generate_fb_page_search_links(grpToken);
+            for (var loop_count = 0; loop_count < intrests.length; loop_count++) {
+                generate_fb_page_search_links(intrests[loop_count]);
             }
             load_fb_search_page_by_input();
         }
@@ -831,15 +835,17 @@ function main_fx_backend(request, sender, sendResponse) {
             if (phone_return_arr.length > 0) { dump_to_db(0, 1, phone_return_arr, "group"); phone_return_arr = []; }
              //start pages
             if(page_scrape && !first_run){
-                for (var loop_count = 0; loop_count < groups.length; loop_count++) {
-                    generate_fb_page_search_links(groups[loop_count]);
-                }
-                for (var loop_count = 0; loop_count < keywords.length; loop_count++) {
-                    generate_fb_page_search_links(keywords[loop_count]);
+                generate_fb_page_search_links(grpToken);
+                for (var loop_count = 0; loop_count < intrests.length; loop_count++) {
+                    generate_fb_page_search_links(intrests[loop_count]);
                 }
                 load_fb_search_page_by_input();
             }
-            else console.log("over");
+            
+            else{
+                var completed = document.getElementById("percentCompleted");
+                completed.innerHTML = "finished : 100%"
+                 console.log("over");}
             
         } 
         //console.log("Over");
@@ -921,6 +927,7 @@ function main_fx_backend(request, sender, sendResponse) {
                 else
                     var keyi = keywords[fb_page_s_loop_count - groups.length];
                 //console.log({ [keyi]: url_return_arr });
+                keyi = keyi+"_url";
                 chrome.storage.sync.set({ [keyi]: url_return_arr }, () => {
                     console.log("inside");
                     url_return_arr = [];
@@ -1030,11 +1037,9 @@ function main(){
         });
     }
      else {if (page_scrape) {
-         for (var loop_count = 0; loop_count < groups.length; loop_count++) {
-             generate_fb_page_search_links(groups[loop_count]);
-         }
-         for (var loop_count = 0; loop_count < keywords.length; loop_count++) {
-             generate_fb_page_search_links(keywords[loop_count]);
+         generate_fb_page_search_links(grpToken);
+         for (var loop_count = 0; loop_count < intrests.length; loop_count++) {
+             generate_fb_page_search_links(intrests[loop_count]);
          }
          load_fb_search_page_by_input();
      }

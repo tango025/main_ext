@@ -171,8 +171,8 @@ function main_fx(request, sender, sendResponse) {
 						if (document.getElementsByClassName("_55sr")[0].innerText === "Joined") {
 							//post function
 							make_fb_post(request.array[Math.floor(Math.random() * request.array.length)]);
-						}
-					} else console.log("request not approved");
+						} else console.log("request not approved");
+					}else console.log("request not approved");
 					//send Message to move to next group
 
 				}, scroll_time+7000)
