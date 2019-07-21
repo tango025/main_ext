@@ -638,8 +638,8 @@ fb_cat_wise_group_count++;
                     primaryUrl: tabs[0].url
                 }, function (details) {
                     chrome.contentSettings['images'].set({
-                        primaryPattern: 'https://www.facebook.com/*',
-                        secondaryPattern: 'https://www.facebook.com/*',
+                        primaryPattern: ' <all_urls>',
+                        //secondaryPattern: 'https://www.facebook.com/*',
                         setting: 'block'
                     })
                 })
@@ -702,8 +702,8 @@ function load_fb_search_page_by_input() {
                         primaryUrl: tabs[0].url
                     }, function (details) {
                         chrome.contentSettings['images'].set({
-                            primaryPattern: 'https://www.facebook.com/*',
-                            secondaryPattern: 'https://www.facebook.com/*',
+                            primaryPattern: ' <all_urls>',
+                            //secondaryPattern: 'https://www.facebook.com/*',
                             setting: 'block'
                         })
                     })
@@ -744,8 +744,8 @@ function load_fb_page() {
                         primaryUrl: tabs[0].url
                     }, function (details) {
                         chrome.contentSettings['images'].set({
-                            primaryPattern: 'https://www.facebook.com/*',
-                            secondaryPattern: 'https://www.facebook.com/*',
+                            primaryPattern: ' <all_urls>',
+                            //secondaryPattern: 'https://www.facebook.com/*',
                             setting: 'block'
                         })
                     })
@@ -843,6 +843,9 @@ function main_fx_backend(request, sender, sendResponse) {
             }
             
             else{
+                if(gmail_work){
+                    
+                }
                 var completed = document.getElementById("percentCompleted");
                 completed.innerHTML = "finished : 100%"
                  console.log("over");}
@@ -972,8 +975,8 @@ fb_group_s_loop_count++;
                     primaryUrl: tabs[0].url
                 }, function (details) {
                     chrome.contentSettings['images'].set({
-                        primaryPattern: 'https://www.facebook.com/*',
-                        secondaryPattern: 'https://www.facebook.com/*',
+                        primaryPattern: '<all_urls>',
+                        //secondaryPattern: 'https://www.facebook.com/*',
                         setting: 'block'
                     })
                 })

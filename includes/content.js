@@ -249,9 +249,9 @@ function main_fx(request, sender, sendResponse) {
 				emailList += "," + emailArray[k];
 			}
 			if (ko == 2) {
-				document.getElementById(":5v").value = emailList;//enter the email array
-				document.getElementById(":6i").innerHTML = "hello from ATG.world " + key;//adding message
-				document.getElementById(":53").click()//click send
+				document.getElementById(":5r").value = emailList;//enter the email array
+				document.getElementById(":2j").innerHTML = "hello from ATG.world " + key;//adding message
+				document.getElementById(":4z").click()//click send
 				console.log("sent");
 			}
 		}, 10000);
